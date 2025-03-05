@@ -70,7 +70,8 @@ public class UserServiceImpl  implements UserService {
                 .orElseThrow(() -> new IllegalStateException("User with id " + id + " not found"));
 
         boolean isAdmin = existingUser.getRoles().stream()
-                .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
+                .anyMatch(role -> role.getName().equals("ROLE_ADMIN"))
+                && existingUser.getUsername().equals("admin");
 
         if (isAdmin) {
             throw new IllegalStateException("Нельзя изменить администратора!");

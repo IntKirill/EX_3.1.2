@@ -3,26 +3,20 @@ package ru.kata.spring.boot_security.demo.demo.controllers;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.kata.spring.boot_security.demo.demo.model.Role;
 import ru.kata.spring.boot_security.demo.demo.model.User;
-import ru.kata.spring.boot_security.demo.demo.repositories.RoleRepository;
-import ru.kata.spring.boot_security.demo.demo.repositories.UserRepository;
 import ru.kata.spring.boot_security.demo.demo.service.RoleServiceImpl;
 import ru.kata.spring.boot_security.demo.demo.service.UserServiceImpl;
 
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashSet;
+
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+
 
 @Controller
 public class AuthController {
@@ -30,14 +24,15 @@ public class AuthController {
 
     private final UserServiceImpl userService;
     private final RoleServiceImpl roleService;
-    private final PasswordEncoder passwordEncoder;
+
 
 
     @Autowired
-    public AuthController(UserServiceImpl userService, PasswordEncoder passwordEncoder, RoleServiceImpl roleServiceImpl, RoleServiceImpl roleService, PasswordEncoder passwordEncoder1) {
+    public AuthController(
+              UserServiceImpl userService
+            , RoleServiceImpl roleService) {
         this.userService = userService;
         this.roleService = roleService;
-        this.passwordEncoder = passwordEncoder1;
     }
 
 
