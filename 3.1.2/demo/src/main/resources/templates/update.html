@@ -10,6 +10,7 @@
 
 <form th:action="@{/admin/update}" th:object="${user}" method="post">
     <input type="hidden" th:field="*{id}"/>
+    <input type="hidden" th:field="*{password}" />
 
     <label for="username">Имя:</label>
     <input type="text" id="username" th:field="*{username}"  />
@@ -27,8 +28,22 @@
     <p class="error" th:if="${#fields.hasErrors('car')}" th:errors="*{car}"></p>
     <br/>
 
+
+    <label>Выберите роль:</label>
+    <select name="roles" multiple>
+        <option value="1">Пользователь</option>
+        <option value="2">Администратор</option>
+    </select>
+    <p class="error" th:if="${#fields.hasErrors('roles')}" th:errors="*{roles}"></p>
+
+
+
+    <br/>
+
+
+
     <label for="password">Пароль:</label>
-    <input type="password" id="password" th:field="*{password}"  />
+    <input type="password" th:field="*{password}" id="password" placeholder="Введите новый пароль" />
     <p class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
     <br/>
 

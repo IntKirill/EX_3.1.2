@@ -13,52 +13,55 @@ import ru.kata.spring.boot_security.demo.demo.model.Role;
 import ru.kata.spring.boot_security.demo.demo.model.User;
 import ru.kata.spring.boot_security.demo.demo.repositories.RoleRepository;
 import ru.kata.spring.boot_security.demo.demo.repositories.UserRepository;
-import ru.kata.spring.boot_security.demo.demo.service.RoleService;
+import ru.kata.spring.boot_security.demo.demo.service.RoleServiceImpl;
+import ru.kata.spring.boot_security.demo.demo.service.UserServiceImpl;
 
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Controller
 public class AuthController {
 
 
-    private final UserRepository userRepository;
+    private final UserServiceImpl userService;
+    private final RoleServiceImpl roleService;
     private final PasswordEncoder passwordEncoder;
-    private final RoleService roleService;
 
 
-@Autowired
-    public AuthController(UserRepository userRepository
-            , PasswordEncoder passwordEncoder
-            , RoleRepository roleRepository, RoleService roleService) {
-
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+    @Autowired
+    public AuthController(UserServiceImpl userService, PasswordEncoder passwordEncoder, RoleServiceImpl roleServiceImpl, RoleServiceImpl roleService, PasswordEncoder passwordEncoder1) {
+        this.userService = userService;
         this.roleService = roleService;
+        this.passwordEncoder = passwordEncoder1;
     }
 
-@GetMapping("/user")
-public String userPage(Model model, Principal principal) {
-    String username = principal.getName();
-    User user = userRepository.findByUsername(username).orElse(null);
-    model.addAttribute("user", user);
-    return "user";
-}
 
-@GetMapping("/admin")
-@PreAuthorize("hasRole('ADMIN')")
-public String getUsers(Model model, @ModelAttribute("error") String error
-        , @ModelAttribute("message") String message) {
-    List<User> users = userRepository.findAll();
-    model.addAttribute("users", users);
-    if (error != null && !error.isEmpty()) {
-        model.addAttribute("error", error);
+    @GetMapping("/user")
+    public String userPage(Model model, Principal principal) {
+        String username = principal.getName();
+        User user = userService.findByUsername(username);
+        model.addAttribute("user", user);
+        return "user";
     }
-    if (message != null && !message.isEmpty()) {
-        model.addAttribute("message", message);
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String getUsers(Model model, @ModelAttribute("error") String error
+            , @ModelAttribute("message") String message) {
+        List<User> users = userService.getAllUsers();
+        model.addAttribute("users", users);
+        if (error != null && !error.isEmpty()) {
+            model.addAttribute("error", error);
+        }
+        if (message != null && !message.isEmpty()) {
+            model.addAttribute("message", message);
+        }
+        return "admin";
     }
-    return "admin";
-}
 
 
     @GetMapping("/admin/new")
@@ -69,80 +72,69 @@ public String getUsers(Model model, @ModelAttribute("error") String error
 
     @PostMapping("/admin/new")
     @PreAuthorize("hasRole('ADMIN')")
-    public String addUser(@ModelAttribute("user") @Valid User user, BindingResult bindingResult) {
+    public String addUser(@ModelAttribute("user") @Valid User user,
+                          BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            System.out.println("Form has errors");
             return "new";
         }
-        Role userRole = roleService.findByName("ROLE_USER")
-                .orElseThrow(() -> new IllegalStateException("Role 'ROLE_USER' not found"));
-        user.getRoles().add(userRole);
-        System.out.println("Password encoding...");
-        String encodedPassword = passwordEncoder.encode(user.getPassword());
-        user.setPassword(encodedPassword);
-        System.out.println("Saving user...");
-        userRepository.save(user);
-        System.out.println("Redirecting to /admin...");
+        userService.saveUser(user);
         return "redirect:/admin";
     }
+
 
     @PostMapping("/admin/delete")
     @PreAuthorize("hasRole('ADMIN')")
     public String deleteUser(@RequestParam("id") Long id, RedirectAttributes redirectAttributes) {
         System.out.println("Deleting user with id: " + id);
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalStateException("User with id " + id + " not found"));
-
-        if (user.getRoles().stream().anyMatch(role -> role.getName().equals("ROLE_ADMIN"))) {
-            redirectAttributes.addFlashAttribute("error",
-                    "Нельзя удалить администратора!");
-            return "redirect:/admin";
+        try {
+            userService.deleteUser(id);
+            redirectAttributes.addFlashAttribute("message", "Пользователь успешно удалён!");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
-        userRepository.delete(user);
-        System.out.println("User deleted");
-        redirectAttributes.addFlashAttribute("message",
-                "Пользователь успешно удалён!");
         return "redirect:/admin";
     }
+
 
     @GetMapping("/admin/update")
     @PreAuthorize("hasRole('ADMIN')")
     public String getEditUserForm(@RequestParam("id") long id, Model model) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        user.getRoles().size();
+        User user = userService.getUserById(id);
+        List<Role> roles = roleService.getAllRoles(); // Получаем все доступные роли
         model.addAttribute("user", user);
+        model.addAttribute("roles", roles); // Передаем роли в модель
         return "update";
     }
 
+
     @PostMapping("/admin/update")
     @PreAuthorize("hasRole('ADMIN')")
-    public String updateUser(@RequestParam("id") Long id,
-                             @ModelAttribute("user") User user,
+    public String updateUser(@ModelAttribute("user") @Valid User user,
+                             @RequestParam(value = "roles", required = false) List<Long> roleIds,
+                             BindingResult bindingResult,
                              RedirectAttributes redirectAttributes) {
-        System.out.println("Update user with id: " + id);
 
-        User existingUser = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalStateException("User with id " + id + " not found"));
-
-        if (existingUser.getRoles().stream().anyMatch(role -> role.getName().equals("ROLE_ADMIN"))) {
-            redirectAttributes.addFlashAttribute("error", "Нельзя изменить администратора!");
-            return "redirect:/admin";  // Перенаправляем на страницу списка пользователей
+        if (bindingResult.hasErrors()) {
+            return "update"; // Ошибка — вернем на форму
         }
-        existingUser.setUsername(user.getUsername());
-        existingUser.setCountry(user.getCountry());
-        existingUser.setCar(user.getCar());
-        existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        // Если пароль не был изменен (пустое поле), то не передаем его на обновление
+        if (user.getPassword() != null && user.getPassword().trim().isEmpty()) {
+            user.setPassword(null); // Если пароль пустой, не обновляем его
+        }
 
-        userRepository.save(existingUser);
-        redirectAttributes.addFlashAttribute("message", "Пользователь успешно обновлен!");
+        try {
+            // Попытка обновить пользователя
+            userService.updateUser(user.getId(), user, roleIds);
+            // Сообщение об успешном обновлении
+            redirectAttributes.addFlashAttribute("message", "Пользователь успешно обновлён!");
+        } catch (IllegalStateException e) {
+            // Если выбрасывается исключение (например, пытаемся изменить администратора), добавляем сообщение в Flash атрибут
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
 
-        return "redirect:/admin";  // Перенаправляем на страницу списка пользователей
+        return "redirect:/admin"; // Перенаправляем на страницу с пользователями после попытки обновления
     }
-
-
 }
-
 
 
 

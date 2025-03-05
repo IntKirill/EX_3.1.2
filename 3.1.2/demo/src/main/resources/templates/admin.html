@@ -47,7 +47,6 @@
         </td>
 
         <td>
-            <!-- Если пользователь не является администратором, показываем кнопку удаления -->
             <form th:action="@{/admin/delete}" method="post">
                 <input type="hidden" name="id" th:value="${user.id}"/>
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
