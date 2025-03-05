@@ -9,13 +9,11 @@ public interface RoleService {
 
     public Optional<Role> findByName(String roleName);
 
-
     public Role save(Role role);
 
     public List<Role> getAllRoles();
 
-
     public List<Role> findRolesByIds(List<Long> roleIds);
 
-    public Optional<Role> findById(Long id);
+
 }

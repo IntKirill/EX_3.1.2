@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -115,24 +116,15 @@ public class AuthController {
                              RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            return "update"; // Ошибка — вернем на форму
+            return "update";
         }
-        // Если пароль не был изменен (пустое поле), то не передаем его на обновление
-        if (user.getPassword() != null && user.getPassword().trim().isEmpty()) {
-            user.setPassword(null); // Если пароль пустой, не обновляем его
-        }
-
         try {
-            // Попытка обновить пользователя
             userService.updateUser(user.getId(), user, roleIds);
-            // Сообщение об успешном обновлении
             redirectAttributes.addFlashAttribute("message", "Пользователь успешно обновлён!");
         } catch (IllegalStateException e) {
-            // Если выбрасывается исключение (например, пытаемся изменить администратора), добавляем сообщение в Flash атрибут
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
-
-        return "redirect:/admin"; // Перенаправляем на страницу с пользователями после попытки обновления
+        return "redirect:/admin";
     }
 }
 
