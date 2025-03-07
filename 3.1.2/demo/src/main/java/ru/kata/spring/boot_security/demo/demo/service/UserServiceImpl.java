@@ -25,22 +25,22 @@ public class UserServiceImpl  implements UserService {
         this.passwordEncoder = passwordEncoder;
         this.roleService = roleService;
     }
-
+    @Transactional
     @Override
     public User getUserById(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
     }
-
+    @Transactional
     @Override
     public User findByUsername(String name) {
         return userRepository.findByUsername(name).orElse(null);
     }
-
+    @Transactional
     @Override
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
-
+    @Transactional
     @Override
     public void saveUser(User user) {
         Role userRole = roleService.findByName("ROLE_USER")
@@ -52,7 +52,7 @@ public class UserServiceImpl  implements UserService {
             userRepository.save(user);
         }
     }
-
+    @Transactional
     @Override
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
@@ -63,7 +63,7 @@ public class UserServiceImpl  implements UserService {
         userRepository.delete(user);
     }
 
-
+    @Transactional
     @Override
     public void updateUser(Long id, User user, List<Long> roleIds) {
         User existingUser = userRepository.findById(id)
